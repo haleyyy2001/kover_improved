@@ -1,6 +1,4 @@
-Below is a sample **README** that you can include alongside your new, extended `kover.py`. It covers installation, usage examples, new features, and references, and is written in a typical Markdown style.
 
----
 
 # Kover: Extended Version
 
