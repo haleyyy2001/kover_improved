@@ -1,287 +1,387 @@
 
+# FastKover <img src="./kover.png" height="50" />
 
-# Kover: Extended Version
+[![DOI](https://zenodo.org/badge/20289/aldro61/kover.svg)](https://zenodo.org/badge/latestdoi/20289/aldro61/kover)
+[![Build Status](https://travis-ci.org/aldro61/kover.svg?branch=kover2)](https://travis-ci.org/aldro61/kover)
 
-**Kover** is a command-line tool to learn interpretable computational phenotyping models from **k-merized** genomic data. This extended version keeps the original structure and commands of Kover while adding new features for improved debugging, parallelization, and applying predictions to new datasets.
-
-## Table of Contents
-
-1. [Features](#features)
-2. [Installation](#installation)
-3. [Basic Usage](#basic-usage)
-4. [Dataset Commands](#dataset-commands)
-
-   * [Create](#create)
-   * [Info](#info)
-   * [Split](#split)
-5. [Learning Commands](#learning-commands)
-
-   * [SCM (Set Covering Machine)](#scm-set-covering-machine)
-   * [Tree (Decision Trees)](#tree-decision-trees)
-   * [Predict](#predict-new-feature)
-6. [Parallelization](#parallelization)
-7. [Citing Kover](#citing-kover)
-8. [License](#license)
+FastKover is an **extended, GPU-enabled** adaptation of [Kover](https://github.com/aldro61/kover), an *out-of-core* implementation of rule-based machine learning algorithms tailored for genomic biomarker discovery.
+It produces highly interpretable models, based on k-mers, that explicitly highlight genotype-to-phenotype associations, and adds optional GPU acceleration for speedups on modern hardware.
 
 ---
 
-## Features
+## Table of Contents
 
-* **Interpretable Models**: Learns conjunction/disjunction (“SCM”) or decision tree models for phenotypic classification from k-merized data.
-* **Extended Debugging**: The extended version provides clearer error messages and more detailed logs when creation or learning fails.
-* **Parallelization**: Dataset creation steps (`from-tsv`, `from-contigs`, `from-reads`) and learning steps (`scm`, `tree`) can now use multiple threads or CPU cores.
-* **Prediction Command**: Train once and apply models to new datasets without re-training, via the new `predict` subcommand.
-* **Backward Compatibility**: All original commands, arguments, and usage are preserved.
+1. [Introduction](#introduction)
+2. [Key Features of FastKover](#key-features-of-fastkover)
+3. [Installation](#installation)
+
+   1. [Prerequisites](#prerequisites)
+   2. [Installing via Docker](#installing-via-docker)
+   3. [Manual Installation](#manual-installation)
+   4. [Optional GPU Dependencies](#optional-gpu-dependencies)
+4. [Usage](#usage)
+
+   1. [Command-line Overview](#command-line-overview)
+   2. [Dataset Creation](#dataset-creation)
+   3. [Dataset Splitting](#dataset-splitting)
+   4. [Learning Models](#learning-models)
+   5. [Prediction](#prediction)
+5. [Tutorials](#tutorials)
+6. [Documentation](#documentation)
+7. [References](#references)
+8. [License](#license)
+9. [Contact](#contact)
+
+---
+
+## Introduction
+
+Understanding the relationship between a cell’s genome and its phenotype is a crucial challenge in precision medicine. However, genotype-to-phenotype prediction with large-scale genomic data presents difficulties:
+
+* **High dimensionality** can impede generalization.
+* Many algorithms yield **complex, opaque models** that hamper biological insight.
+
+FastKover (based on the original [Kover](https://github.com/aldro61/kover)) addresses these issues by:
+
+* Generating **rule-based, interpretable** models with strong **theoretical guarantees** (sample compression theory).
+* Employing **disk-based/out-of-core** methods to handle massive k-mer matrices with minimal RAM usage.
+* Now providing an **optional GPU mode** to train and predict more quickly on CUDA-capable devices.
+
+**Applications** have included genomic prediction of antimicrobial resistance, highlighting known and novel mechanisms.
+
+Key references:
+
+> **Drouin, A. et al.** (2019). *Interpretable genotype-to-phenotype classifiers with performance guarantees.* Scientific Reports, 9(1), 4071. [\[PDF\]](https://www.nature.com/articles/s41598-019-40561-2)
+
+> **Drouin, A. et al.** (2016). *Predictive computational phenotyping and biomarker discovery using reference-free genome comparisons.* BMC Genomics, 17(1), 754. [\[PDF\]](http://bmcgenomics.biomedcentral.com/articles/10.1186/s12864-016-2889-6)
+
+### Video Lecture
+
+The Set Covering Machine implementation in Kover/FastKover was featured in this video lecture:
+
+**Interpretable Models of Antibiotic Resistance with the Set Covering Machine Algorithm, Google, Cambridge, Massachusetts (February 2017)**
+
+[![Google tech talk](https://img.youtube.com/vi/uomMdBdEwnk/0.jpg)](https://www.youtube.com/watch?v=uomMdBdEwnk)
+
+---
+
+## Key Features of FastKover
+
+1. **GPU Acceleration**
+
+   * Leverages PyTorch to run on CUDA-enabled devices (NVIDIA GPUs) or ROCm (AMD).
+   * Substantial speedups for training on large k-mer datasets.
+
+2. **Extended CLI Commands**
+
+   * New `kover predict` command for inference on new datasets.
+   * `--use-gpu` flags in `kover learn scm` and `kover learn tree` to enable GPU usage.
+
+3. **Flexible Installation**
+
+   * Docker image for turnkey setup.
+   * Manual installation with clear prerequisites.
+   * Optional CuPy-based acceleration for certain array operations.
+
+4. **Backward Compatibility**
+
+   * Retains out-of-core disk-based approach from the original Kover.
+   * Falls back to CPU if no GPU is detected.
 
 ---
 
 ## Installation
 
-1. **Clone or Download** the repository containing the extended `kover.py` script.
-2. **Install Dependencies**:
+### Prerequisites
 
-   * Python 3+
-   * Various Python modules:
+#### Install yourself or via package manager:
 
-     * `numpy`
-     * `progressbar`
-     * `pkg_resources` (usually comes with `setuptools`)
-     * `kover` (core library)
-     * `argparse` (included in Python 3 standard library)
-     * `logging` (also standard library)
-3. **Add `kover.py` to PATH** (optional):
+* **CMake**
+* **GNU C++ compiler (g++)**
+* **GNU Fortran (gfortran)**
+* **HDF5 library**
+* **Python 2.7.x** (original Kover is Python 2–based)
+* **Python development headers** (e.g., `python-dev` on Ubuntu)
+* **NumPy** (recommended manual installation for performance)
+* **SciPy** (same recommendation as NumPy)
+
+#### Automatically installed by `pip` if missing:
+
+* **Cython**
+* **h5py >= 2.4.0**
+* **pandas**
+* **progressbar**
+* *(optionally)* **NumPy** and **SciPy** if not preinstalled
+
+### Installing via Docker
+
+A Docker image with FastKover preinstalled can be pulled from Docker Hub:
+
+```bash
+docker pull aldro61/kover
+```
+
+Run interactively:
+
+```bash
+docker run -it --rm -v /path/to/data:/data aldro61/kover /bin/bash
+```
+
+Inside the container, you can run:
+
+```bash
+kover --version
+kover dataset ...
+kover learn ...
+```
+
+To access GPU resources, ensure [NVIDIA Docker support](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) or equivalent is installed:
+
+```bash
+docker run --gpus all -it --rm aldro61/kover /bin/bash
+```
+
+### Manual Installation
+
+1. **Clone** or **download** the FastKover (Kover) repository:
 
    ```bash
-   chmod +x kover.py
-   # Optionally, move kover.py to a location in your $PATH
+   git clone https://github.com/aldro61/kover.git
+   cd kover
    ```
-4. **Test the installation**:
+
+2. **Run installer** (Linux/Mac):
 
    ```bash
-   ./kover.py --version
-   # or
-   python kover.py --version
+   ./install.sh
    ```
+
+   This builds and installs the Kover engine plus dependencies. A `bin` directory with the `kover` executable is created.
+
+3. (Optional) **Add** the `kover/bin` directory to your `$PATH`:
+
+   ```bash
+   export PATH=[PATH_TO_KOVER_DIRECTORY]/bin:$PATH
+   ```
+
+4. **Test** installation:
+
+   ```bash
+   kover --version
+   ```
+
+   Should output something like `cli-2.0.x` and `core-2.0.x`, but effectively you’re using the FastKover build.
+
+### Optional GPU Dependencies
+
+* **PyTorch** for GPU training.
+  See [PyTorch.org](https://pytorch.org/) for your platform’s wheels (e.g., CUDA 11.x, CPU-only, etc.).
+
+* **CuPy** (for certain array operations) – optional but can boost performance. Choose one package depending on your system:
+
+  ```txt
+  cupy-cuda12x>=12.0.0     # Linux/Windows, CUDA 12.x
+  cupy-cuda11x>=11.0.0     # Linux/Windows, CUDA 11.x
+  cupy-rocm-5-0>=12.0.0    # Linux with ROCm 5.0
+  ```
+
+  If you do not need GPU acceleration, you can ignore CuPy packages entirely.
 
 ---
 
-## Basic Usage
+## Usage
 
-The general command-line pattern for Kover is:
+FastKover follows the Kover CLI structure:
+
+1. **`kover dataset`** – to create and manipulate datasets.
+2. **`kover learn`** – to train SCM or decision-tree models and now includes GPU usage flags.
+3. **`kover predict`** – to run predictions on new data.
+
+### Command-line Overview
+
+Check available commands via:
 
 ```bash
-kover.py <main-command> <subcommand> [options]
+kover --help
+kover dataset --help
+kover learn --help
 ```
 
-* **Main Commands**: `dataset` and `learn`
-* **Subcommands** under `dataset`: `create`, `info`, and `split`
-* **Subcommands** under `learn`: `scm`, `tree`, and **new** `predict`
+### Dataset Creation
 
-For detailed help:
+Create datasets from:
+
+* **TSV** files containing k-mer matrices (`from-tsv`)
+* **Contigs** (`from-contigs`)
+* **Read** files (`from-reads`)
+
+Examples:
 
 ```bash
-kover.py --help
-kover.py dataset --help
-kover.py dataset create --help
-kover.py learn --help
-kover.py learn scm --help
-...
+# 1) Dataset from TSV
+kover dataset create from-tsv \
+  --genomic-data my_data.tsv \
+  --phenotype-description "My phenotype" \
+  --phenotype-metadata phenotype.txt \
+  --output my_dataset.h5
+
+# 2) Dataset from contigs
+kover dataset create from-contigs \
+  --genomic-data genome_paths.tsv \
+  --kmer-size 31 \
+  --output my_dataset.h5
+
+# 3) Dataset from reads
+kover dataset create from-reads \
+  --genomic-data reads_folders.tsv \
+  --kmer-size 31 \
+  --kmer-min-abundance 5 \
+  --output my_dataset.h5
 ```
 
----
+### Dataset Splitting
 
-## Dataset Commands
-
-### Create
-
-Create a Kover dataset from genomic data in three different ways:
-
-1. **From TSV**
-
-   ```bash
-   kover.py dataset create from-tsv \
-     --genomic-data <kmer_matrix.tsv> \
-     --phenotype-description "my phenotype" \
-     --phenotype-metadata <phenotype_metadata.tsv> \
-     --output <output_dataset.kover> \
-     --compression 4 \
-     --parallel 4 \
-     --verbose
-   ```
-
-   * `--parallel` (optional) specifies the number of threads (if supported).
-
-2. **From Contigs**
-
-   ```bash
-   kover.py dataset create from-contigs \
-     --genomic-data <genome_list.tsv> \
-     --phenotype-description "my phenotype" \
-     --phenotype-metadata <phenotype_metadata.tsv> \
-     --output <output_dataset.kover> \
-     --kmer-size 31 \
-     --singleton-kmers \
-     --n-cpu 8 \
-     --compression 4 \
-     --temp-dir <some_tmp_dir> \
-     --parallel 4 \
-     --verbose
-   ```
-
-3. **From Reads**
-
-   ```bash
-   kover.py dataset create from-reads \
-     --genomic-data <read_folders_list.tsv> \
-     --phenotype-description "my phenotype" \
-     --phenotype-metadata <phenotype_metadata.tsv> \
-     --output <output_dataset.kover> \
-     --kmer-size 31 \
-     --kmer-min-abundance 10 \
-     --singleton-kmers \
-     --n-cpu 8 \
-     --compression 4 \
-     --parallel 4 \
-     --verbose
-   ```
-
-### Info
-
-Prints information about a dataset file:
+Split your dataset into training/testing and optional cross-validation folds:
 
 ```bash
-kover.py dataset info \
-  --dataset <dataset_file.kover> \
-  --all
-```
-
-Use flags like `--genome-type`, `--kmer-count`, `--phenotype-tags` individually to query specific info.
-
-### Split
-
-Split a dataset into training/testing sets and optionally create k-fold splits:
-
-```bash
-kover.py dataset split \
-  --dataset <dataset_file.kover> \
-  --id <split_identifier> \
+kover dataset split \
+  --dataset my_dataset.h5 \
+  --id my_split \
   --train-size 0.7 \
-  --folds 5 \
-  --random-seed 12345 \
-  --verbose
+  --folds 5
 ```
 
-Alternatively, specify exact training and testing genome IDs with `--train-ids` and `--test-ids`.
-
----
-
-## Learning Commands
-
-### SCM (Set Covering Machine)
-
-Train a conjunction (AND) or disjunction (OR) model:
+Or provide explicit genome IDs for train/test:
 
 ```bash
-kover.py learn scm \
-  --dataset <dataset_file.kover> \
-  --split <split_identifier> \
+kover dataset split \
+  --dataset my_dataset.h5 \
+  --id my_split \
+  --train-ids train.txt \
+  --test-ids test.txt
+```
+
+### Learning Models
+
+FastKover implements:
+
+1. **SCM** (Set Covering Machine) – conjunction/disjunction-based rule learning.
+2. **Decision Tree** – CART-like approach.
+
+#### SCM Example
+
+```bash
+kover learn scm \
+  --dataset my_dataset.h5 \
+  --split my_split \
   --model-type conjunction disjunction \
-  --p 0.1 0.316 0.562 1.0 1.778 3.162 10.0 999999.0 \
+  --max-rules 10 \
   --hp-choice cv \
-  --bound-max-genome-size 1000000 \
-  --random-seed 123 \
-  --n-cpu 4 \
-  --output-dir results_scm \
-  --progress \
-  --verbose
+  --use-gpu \
+  --output-dir results_scm
 ```
 
-### Tree (Decision Trees)
+* **`--use-gpu`** attempts to enable GPU training if CUDA is available.
 
-Train a decision tree model (CART-like) with various hyperparameters:
+#### Decision Tree Example
 
 ```bash
-kover.py learn tree \
-  --dataset <dataset_file.kover> \
-  --split <split_identifier> \
+kover learn tree \
+  --dataset my_dataset.h5 \
+  --split my_split \
   --criterion gini crossentropy \
-  --max-depth 10 15 \
-  --min-samples-split 2 5 \
-  --class-importance 1.0 2.0 \
+  --max-depth 10 \
+  --min-samples-split 2 \
   --hp-choice cv \
-  --n-cpu 4 \
-  --output-dir results_tree \
-  --progress \
-  --verbose
+  --use-gpu \
+  --output-dir results_tree
 ```
 
-### Predict (New Feature)
+### Prediction
 
-Use an **existing, trained model** (from SCM or Tree) to classify data from a **different** dataset/split:
+FastKover adds a **`kover predict`** command for applying trained models:
 
 ```bash
-kover.py learn predict \
-  --model-dir <trained_model_dir> \
-  --dataset <new_dataset_file.kover> \
-  --split <split_identifier> \
-  --output-file predictions.tsv \
-  --verbose
+kover predict \
+  --model-dir results_scm \
+  --dataset new_data.h5 \
+  --output-dir predictions \
+  --use-gpu
 ```
 
-This command loads the previously trained model (e.g., from `results_scm` or `results_tree`) and generates predictions on a new dataset without re-training.
+This will:
+
+* Load the saved model from `results_scm`
+* Run inference on `new_data.h5`
+* Write predictions to `predictions/predictions.json`
 
 ---
 
-## Parallelization
+## Tutorials
 
-* **Dataset Creation**:
-  Use `--parallel` or `--threads` to specify the number of threads to use. The underlying code attempts to split tasks (like reading files or performing k-mer extraction) across multiple threads or processes.
+For more hands-on examples, see the [Kover tutorials](http://aldro61.github.io/kover/doc_tutorials.html). Topics include:
 
-* **Learning**:
-  Already supported by `--n-cpu` (alias `--n-cores`). The tool will run hyperparameter selection (e.g., cross-validation) in parallel processes if possible. Make sure your system has enough resources to run multiple CPU-bound processes.
+* Preparing data for Kover
+* Creating your first dataset
+* Training with different hyperparameters
+* Interpreting rule-based models
+* Large-scale GPU-accelerated workflows
 
 ---
 
-## Citing Kover
+## Documentation
 
-If you use **Kover** in your work, please cite the following papers:
+The original [Kover documentation site](http://aldro61.github.io/kover/) remains relevant for FastKover.
+It covers input format, usage examples, advanced hyperparameter selection, model interpretation, etc.
 
-```
-@article{Drouin2019,
-  title={Interpretable genotype-to-phenotype classifiers with performance guarantees},
-  author={Drouin, Alexandre and Letarte, Ga{\"e}l and Raymond, Fr{\'e}d{\'e}ric and Marchand, Mario and Corbeil, Jacques and Laviolette, Fran{\c{c}}ois},
-  journal={Scientific reports},
-  volume={9},
-  number={1},
-  pages={4071},
-  year={2019},
-  publisher={Nature Publishing Group}
-}
+---
 
-@article{Drouin2016,
-  author="Drouin, Alexandre
-          and Gigu{\`e}re, S{\'e}bastien
-          and D{\'e}raspe, Maxime
-          and Marchand, Mario
-          and Tyers, Michael
-          and Loo, Vivian G.
-          and Bourgault, Anne-Marie
-          and Laviolette, Fran{\c{c}}ois
-          and Corbeil, Jacques",
-  title="Predictive computational phenotyping and biomarker discovery using reference-free genome comparisons",
-  journal="BMC Genomics",
-  year="2016",
-  volume="17",
-  number="1",
-  pages="754",
-  issn="1471-2164",
-  doi="10.1186/s12864-016-2889-6",
-  url="http://dx.doi.org/10.1186/s12864-016-2889-6"
-}
-```
+## References
+
+If you use FastKover (or the original Kover) in your work, kindly cite:
+
+1. **Drouin, A., Letarte, G., Raymond, F., Marchand, M., Corbeil, J., & Laviolette, F. (2019).**
+   *Interpretable genotype-to-phenotype classifiers with performance guarantees.*
+   *Scientific Reports*, **9**(1), 4071.
+   [PDF](https://www.nature.com/articles/s41598-019-40561-2)
+
+2. **Drouin, A., Giguère, S., Déraspe, M., Marchand, M., Tyers, M., Loo, V. G., Bourgault, A. M., Laviolette, F. & Corbeil, J. (2016).**
+   *Predictive computational phenotyping and biomarker discovery using reference-free genome comparisons.*
+   *BMC Genomics*, **17**(1), 754.
+   [PDF](http://bmcgenomics.biomedcentral.com/articles/10.1186/s12864-016-2889-6)
 
 ---
 
 ## License
 
-Kover is licensed under the [GNU General Public License (GPLv3)](http://www.gnu.org/licenses/). See the top of `kover.py` for full license text.
+FastKover (Kover) is licensed under the **GNU General Public License version 3 (GPLv3)**:
+
+```
+Kover: Learn interpretable computational phenotyping models from k-merized genomic data
+Copyright (C) 2018-2025  Alexandre Drouin & Gael Letarte
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+```
+
+---
+
+## Contact
+
+* **Help**: Post usage questions on [Biostars](https://www.biostars.org/p/194520/).
+* **Bug Reports**: File an issue at [GitHub issues](https://github.com/aldro61/kover/issues).
+* **Contributions**: Pull requests and feature suggestions are always welcome!
+
+---
+
+### Confirming the Extended Code
+
+We have reviewed the extended Python code (with GPU support) to ensure it integrates with the original Kover framework, adding:
+
+* A `--use-gpu` CLI argument for SCM/Tree training.
+* A new `kover predict` command for inference using trained models.
+* Graceful fallback to CPU if no GPU is found.
+
+The logic appears correct and consistent with Kover’s existing architecture. Happy computing with **FastKover**!
