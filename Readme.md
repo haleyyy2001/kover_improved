@@ -1,5 +1,5 @@
-FastKover 
-
+FastKover  
+---
 > **Note:** This project is an **edited version** of [aldro61/kover](https://github.com/aldro61/kover). We have added optional GPU support via PyTorch, extended CLI commands (including `kover predict`), and other performance enhancements.
 > The original repository is still actively maintained by [aldro61](https://github.com/aldro61) and [gletarte](https://github.com/gletarte). Please see [aldro61/kover](https://github.com/aldro61/kover) for the unmodified code, original documentation, and official releases.
  
