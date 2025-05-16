@@ -1,5 +1,5 @@
 
-# FastKover <img src="./kover.png" height="50" />
+# FastKover  
 
 [![DOI](https://zenodo.org/badge/20289/aldro61/kover.svg)](https://zenodo.org/badge/latestdoi/20289/aldro61/kover)
 [![Build Status](https://travis-ci.org/aldro61/kover.svg?branch=kover2)](https://travis-ci.org/aldro61/kover)
