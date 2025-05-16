@@ -1,12 +1,8 @@
- 
----
- 
+FastKover 
 
 > **Note:** This project is an **edited version** of [aldro61/kover](https://github.com/aldro61/kover). We have added optional GPU support via PyTorch, extended CLI commands (including `kover predict`), and other performance enhancements.
 > The original repository is still actively maintained by [aldro61](https://github.com/aldro61) and [gletarte](https://github.com/gletarte). Please see [aldro61/kover](https://github.com/aldro61/kover) for the unmodified code, original documentation, and official releases.
-
-[![DOI](https://zenodo.org/badge/20289/aldro61/kover.svg)](https://zenodo.org/badge/latestdoi/20289/aldro61/kover)
-[![Build Status](https://travis-ci.org/aldro61/kover.svg?branch=kover2)](https://travis-ci.org/aldro61/kover)
+ 
 
 FastKover (a fork of **Kover**) is an *out-of-core* implementation of rule-based machine learning algorithms, **modified** to add **GPU-based training** and other improvements while preserving the original code’s ability to learn interpretable, k-mer-based models for genomic biomarker discovery.
 
